@@ -6,7 +6,6 @@ from .database import db
 
 class LoginFrame(tb.Frame):
     """登录框架"""
-    
     def __init__(self, parent, callback=None):
         super().__init__(parent, bootstyle="dark")
         
@@ -97,6 +96,8 @@ class LoginFrame(tb.Frame):
             # 在注册框架中显示错误消息
             if self.register_frame:
                 self.register_frame.show_error(message)
+
+       
 
 class RegisterFrame(tb.Frame):
     """注册框架"""
