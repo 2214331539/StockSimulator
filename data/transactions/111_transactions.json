@@ -1,0 +1,12 @@
+[
+    {
+        "username": "111",
+        "type": "buy",
+        "stock_code": "sh.000001",
+        "stock_name": "上证指数",
+        "price": 3367.4619,
+        "quantity": 20,
+        "amount": 67349.238,
+        "timestamp": "2025-05-19 10:30:10"
+    }
+]

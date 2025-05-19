@@ -1,0 +1,22 @@
+[
+    {
+        "username": "user",
+        "type": "buy",
+        "stock_code": "sh.000001",
+        "stock_name": "上证指数",
+        "price": 2629.88,
+        "quantity": 1,
+        "amount": 2629.88,
+        "timestamp": "2025-05-12 11:48:22"
+    },
+    {
+        "username": "user",
+        "type": "buy",
+        "stock_code": "sh.601398",
+        "stock_name": "工商银行",
+        "price": 7.16,
+        "quantity": 1,
+        "amount": 7.16,
+        "timestamp": "2025-05-12 22:08:54"
+    }
+]

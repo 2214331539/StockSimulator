@@ -1,0 +1,7 @@
+baostock==0.8.9
+matplotlib>=3.7.1
+numpy>=2.1.0
+pandas>=2.0.1
+requests>=2.28.2
+beautifulsoup4>=4.12.2
+ttkbootstrap>=1.10.1
