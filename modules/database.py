@@ -3,6 +3,10 @@ import json
 import pandas as pd
 from datetime import datetime
 
+class test:
+    def test():
+        return
+
 class Database:
     """数据库类，用于管理用户数据和股票数据"""
     
@@ -21,7 +25,6 @@ class Database:
         self._initialize_data_files()
     
     def _initialize_data_files(self):
-        """初始化数据文件"""
         # 初始化用户数据
         if not os.path.exists(self.users_file):
             default_users = {
