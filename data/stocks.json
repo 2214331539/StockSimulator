@@ -1,43 +1,43 @@
 {
     "sh.000001": {
         "name": "上证指数",
-        "price": 11.46,
-        "change": 0.0
+        "price": 11.42,
+        "change": -0.35
     },
     "sz.399001": {
         "name": "深证成指",
-        "price": 10107.4,
-        "change": -0.25
+        "price": 10060.36,
+        "change": -0.71
     },
     "sz.399006": {
         "name": "创业板指",
-        "price": 2006.77,
-        "change": -0.73
+        "price": 1995.61,
+        "change": -1.28
     },
     "sh.600000": {
         "name": "浦发银行",
-        "price": 12.09,
-        "change": -1.14
+        "price": 12.0,
+        "change": -1.88
     },
     "sh.601398": {
         "name": "工商银行",
-        "price": 7.07,
-        "change": -0.14
+        "price": 7.05,
+        "change": -0.42
     },
     "sh.601288": {
         "name": "农业银行",
-        "price": 5.53,
-        "change": -0.18
+        "price": 5.52,
+        "change": -0.36
     },
     "sh.601939": {
         "name": "建设银行",
-        "price": 9.05,
-        "change": -0.33
+        "price": 9.03,
+        "change": -0.55
     },
     "sz.000001": {
         "name": "平安银行",
-        "price": 11.46,
-        "change": 0.0
+        "price": 11.42,
+        "change": -0.35
     },
     "sz.000002": {
         "name": "万科A",
@@ -46,8 +46,8 @@
     },
     "sh.600048": {
         "name": "保利发展",
-        "price": 8.06,
-        "change": -0.37
+        "price": 8.05,
+        "change": -0.49
     },
     "sh.600606": {
         "name": "绿地控股",
@@ -56,88 +56,88 @@
     },
     "sh.600536": {
         "name": "中国软件",
-        "price": 44.49,
-        "change": 3.18
+        "price": 44.22,
+        "change": 2.55
     },
     "sz.300750": {
         "name": "宁德时代",
-        "price": 255.99,
-        "change": -4.12
+        "price": 254.08,
+        "change": -4.84
     },
     "sh.688981": {
         "name": "中芯国际",
-        "price": 84.27,
-        "change": 1.65
+        "price": 84.03,
+        "change": 1.36
     },
     "sz.002415": {
         "name": "海康威视",
-        "price": 28.14,
-        "change": -0.14
+        "price": 28.09,
+        "change": -0.32
     },
     "sh.600519": {
         "name": "贵州茅台",
-        "price": 1558.08,
-        "change": -0.92
+        "price": 1549.59,
+        "change": -1.46
     },
     "sh.601888": {
         "name": "中国中免",
-        "price": 61.07,
-        "change": 0.31
+        "price": 60.9,
+        "change": 0.03
     },
     "sh.600690": {
         "name": "海尔智家",
-        "price": 25.66,
-        "change": -0.39
+        "price": 25.53,
+        "change": -0.89
     },
     "sh.600276": {
         "name": "恒瑞医药",
-        "price": 53.43,
-        "change": -1.96
+        "price": 53.15,
+        "change": -2.48
     },
     "sz.300122": {
         "name": "智飞生物",
-        "price": 19.14,
-        "change": -0.93
+        "price": 19.06,
+        "change": -1.35
     },
     "sh.603259": {
         "name": "药明康德",
-        "price": 62.2,
-        "change": 0.24
+        "price": 61.77,
+        "change": -0.45
     },
     "sh.601857": {
         "name": "中国石油",
-        "price": 8.19,
-        "change": 0.12
+        "price": 8.16,
+        "change": -0.24
     },
     "sh.600028": {
         "name": "中国石化",
-        "price": 5.71,
-        "change": 0.35
+        "price": 5.69,
+        "change": 0.0
     },
     "sh.601985": {
         "name": "中国核电",
-        "price": 9.69,
-        "change": 1.47
+        "price": 9.67,
+        "change": 1.26
     },
     "sz.300059": {
         "name": "东方财富",
-        "price": 20.77,
-        "change": -0.05
+        "price": 20.71,
+        "change": -0.34
     },
     "sh.600570": {
         "name": "恒生电子",
-        "price": 25.51,
-        "change": 0.04
+        "price": 25.37,
+        "change": -0.51
     },
     "sh.601012": {
         "name": "隆基绿能",
-        "price": 15.0,
-        "change": 0.54
+        "price": 14.97,
+        "change": 0.34
     },
     "sz.300274": {
         "name": "阳光电源",
-        "price": 61.11,
-        "change": 0.84
+        "price": 60.88,
+        "change": 0.46
     },
     "sh.600115": {
         "name": "中国东航",
@@ -146,7 +146,7 @@
     },
     "sh.600009": {
         "name": "上海机场",
-        "price": 32.55,
-        "change": 0.49
+        "price": 32.45,
+        "change": 0.19
     }
 }

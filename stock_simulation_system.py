@@ -149,6 +149,16 @@ class StockSimulationApp:
         """退出登录"""
         # 确认是否退出
         if Messagebox.yesno("确认退出", "确定要退出登录吗？"):
+            # 清理当前用户会话的框架
+            for frame_name in list(self.frames.keys()): # 使用keys()的副本进行迭代
+                if self.frames[frame_name] is not None:
+                    self.frames[frame_name].destroy()
+            self.frames.clear() # 清空框架字典
+
+            # 额外确保content_frame被清空
+            for widget in self.content_frame.winfo_children():
+                widget.destroy()
+            
             # 清空用户信息
             self.current_user = None
             self.user_type = None
