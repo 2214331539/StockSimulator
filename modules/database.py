@@ -3,10 +3,6 @@ import json
 import pandas as pd
 from datetime import datetime
 
-class test:
-    def test():
-        return
-
 class Database:
     """数据库类，用于管理用户数据和股票数据"""
     

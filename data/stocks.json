@@ -1,27 +1,27 @@
 {
     "sh.000001": {
         "name": "上证指数",
-        "price": 3367.4619,
-        "change": -0.4
+        "price": 3348.3717,
+        "change": -0.94
     },
     "sh.600000": {
         "name": "浦发银行",
-        "price": 12.1,
-        "change": -1.55
+        "price": 12.23,
+        "change": -1.61
     },
     "sh.601398": {
         "name": "工商银行",
-        "price": 7.16,
-        "change": -0.14
+        "price": 7.08,
+        "change": -0.56
     },
     "sz.000001": {
         "name": "平安银行",
-        "price": 11.38,
-        "change": -0.09
+        "price": 11.46,
+        "change": -0.78
     },
     "sz.000002": {
         "name": "万科A",
-        "price": 6.77,
-        "change": -0.29
+        "price": 6.63,
+        "change": -0.6
     }
 }

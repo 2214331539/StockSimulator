@@ -66,20 +66,8 @@ class NewsFrame(tb.Frame):
         self.scrollbar_y.pack(side=tk.RIGHT, fill=tk.Y)
         self.scrollbar_x.pack(side=tk.BOTTOM, fill=tk.X)
         
-        # 绑定双击事件
-        self.news_tree.bind("<Double-1>", self.show_news_content)
-        
-        # 创建新闻内容框架
-        self.content_frame = tb.Frame(self)
-        self.content_frame.pack(fill=tk.BOTH, expand=True, pady=10)
-        
-        # 创建新闻内容标题
-        self.content_title = tb.Label(self.content_frame, text="新闻内容", style="Header.TLabel")
-        self.content_title.pack(anchor='w', pady=5)
-        
-        # 创建新闻内容文本框
-        self.content_text = scrolledtext.ScrolledText(self.content_frame, wrap=tk.WORD, height=10)
-        self.content_text.pack(fill=tk.BOTH, expand=True)
+        # 绑定双击事件（直接跳转）
+        self.news_tree.bind("<Double-1>", self.open_news_url)
         
         # 存储新闻数据
         self.news_data = []
@@ -139,53 +127,20 @@ class NewsFrame(tb.Frame):
         self.progress.stop()
         self.fetch_btn.config(state=tk.NORMAL)
     
-    def show_news_content(self, event):
-        """显示选中新闻的内容"""
+    def open_news_url(self, event):
+        """双击新闻条目时打开链接"""
         selected_item = self.news_tree.selection()
         if not selected_item:
             return
         
-        # 获取选中的新闻
-        values = self.news_tree.item(selected_item[0], 'values')
-        if not values or len(values) < 3:
-            return
-        
-        title, _, url = values
-        
-        # 更新内容标题
-        self.content_title.config(text=title)
-        
-        # 清空内容
-        self.content_text.delete(1.0, tk.END)
-        self.content_text.insert(tk.END, "正在加载新闻内容，请稍候...\n")
-        
-        # 在新线程中获取内容
-        thread = threading.Thread(target=self.fetch_content, args=(url, title))
-        thread.daemon = True
-        thread.start()
-    
-    def fetch_content(self, url, title):
-        """获取新闻内容"""
-        try:
-            content = self.get_news_content(url)
-            
-            # 更新内容（线程安全）
-            self.after(0, lambda: self.update_content(title, content, url))
-        except Exception as e:
-            self.after(0, lambda: self.content_text.insert(tk.END, f"获取内容出错: {str(e)}"))
-    
-    def update_content(self, title, content, url):
-        """更新新闻内容"""
-        self.content_text.delete(1.0, tk.END)
-        self.content_text.insert(tk.END, f"标题: {title}\n\n")
-        self.content_text.insert(tk.END, f"内容: \n{content}\n\n")
-        self.content_text.insert(tk.END, f"原文链接: {url}\n")
-        
-        # 添加可点击的链接
-        self.content_text.insert(tk.END, "点击打开原文网页")
-        self.content_text.tag_add("link", "end-19c", "end")
-        self.content_text.tag_config("link", foreground="blue", underline=1)
-        self.content_text.tag_bind("link", "<Button-1>", lambda e: webbrowser.open(url))
+        # 获取选中的新闻链接
+        item = self.news_tree.item(selected_item[0])
+        url = item['values'][2]  # 链接位于第三列
+        if url:
+            webbrowser.open(url)
+            self.update_status(f"已打开新闻链接: {url}")
+        else:
+            messagebox.showwarning("警告", "该新闻链接无效")
     
     def get_stock_news(self):
         """
@@ -274,43 +229,9 @@ class NewsFrame(tb.Frame):
             self.update_status(f"请求页面出错: {str(e)}")
             return []
 
-    def get_news_content(self, url):
-        """
-        获取新闻内容
-        :param url: 新闻链接
-        :return: 新闻内容
-        """
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-        
-        try:
-            response = requests.get(url, headers=headers, timeout=10)
-            response.encoding = 'utf-8'  # 确保使用UTF-8编码
-            
-            if response.status_code != 200:
-                return "获取内容失败"
-            
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # 尝试多种可能的内容选择器
-            content_selectors = [
-                'div.article-content', 'div#artibody', 'div.article', 'div.content'
-            ]
-            
-            content = ""
-            for selector in content_selectors:
-                content_div = soup.select_one(selector)
-                if content_div:
-                    # 移除脚本和样式
-                    for script in content_div.find_all(['script', 'style']):
-                        script.decompose()
-                    
-                    # 获取文本
-                    content = content_div.get_text(strip=True)
-                    if content:
-                        break
-            
-            return content if content else "未找到内容"
-        except Exception as e:
-            return f"获取内容出错: {str(e)}" 
+# 主程序入口
+if __name__ == "__main__":
+    app = tb.Window(title="股票新闻资讯", theme="litera")
+    news_frame = NewsFrame(app)
+    news_frame.pack(fill=tk.BOTH, expand=True)
+    app.mainloop()
