@@ -1,0 +1,42 @@
+[
+    {
+        "username": "aaa",
+        "type": "buy",
+        "stock_code": "sz.000002",
+        "stock_name": "万科A",
+        "price": 6.63,
+        "quantity": 2000,
+        "amount": 13260.0,
+        "timestamp": "2025-05-26 11:16:09"
+    },
+    {
+        "username": "aaa",
+        "type": "buy",
+        "stock_code": "sz.000001",
+        "stock_name": "平安银行",
+        "price": 11.46,
+        "quantity": 100,
+        "amount": 1146.0,
+        "timestamp": "2025-05-26 11:16:15"
+    },
+    {
+        "username": "aaa",
+        "type": "buy",
+        "stock_code": "sh.600000",
+        "stock_name": "浦发银行",
+        "price": 12.23,
+        "quantity": 2000,
+        "amount": 24460.0,
+        "timestamp": "2025-05-26 11:16:21"
+    },
+    {
+        "username": "aaa",
+        "type": "buy",
+        "stock_code": "sh.000001",
+        "stock_name": "上证指数",
+        "price": 3348.3717,
+        "quantity": 1,
+        "amount": 3348.3717,
+        "timestamp": "2025-05-26 11:16:29"
+    }
+]

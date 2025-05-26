@@ -14,10 +14,15 @@ matplotlib.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'SimSun',
 matplotlib.rcParams['axes.unicode_minus'] = False
 plt.style.use('dark_background')  # 使用深色背景风格
 
-# 定义全局颜色变量（从AccountFrame中复用）
+# 定义全局颜色变量
+BACKGROUND_COLOR = "#0d1926"  # 深蓝色背景
+TEXT_COLOR = "#ffffff"  # 白色文本
+ACCENT_COLOR = "#1e90ff"  # 亮蓝色强调色
 UP_COLOR = "#ff4d4d"  # 上涨颜色(红色)
 DOWN_COLOR = "#00e676"  # 下跌颜色(绿色)
-TEXT_COLOR = "#ffffff"  # 白色文本
+GRID_COLOR = "#1a3c5e"  # 网格线颜色
+CHART_BG_COLOR = "#0d1926"  # 图表背景色
+CHART_AREA_COLOR = "#142638"  # 图表区域色
 
 class AdminFrame(tb.Frame):
     """管理员页面框架"""
@@ -111,7 +116,7 @@ class AdminFrame(tb.Frame):
         
         # 绑定选择事件和双击事件
         self.user_tree.bind("<<TreeviewSelect>>", self.on_user_select)
-        self.user_tree.bind("<Double-1>", self.show_holdings_window)  # 新增双击事件
+        self.user_tree.bind("<Double-1>", self.show_user_account_window)  # 双击查看详细账户信息
         
         # 创建用户详情框架
         self.detail_frame = tb.LabelFrame(self.user_tab, text="用户详情", bootstyle="info")
@@ -141,6 +146,11 @@ class AdminFrame(tb.Frame):
         tb.Label(self.detail_frame, text="注册时间:", bootstyle="light").grid(row=2, column=0, sticky="w", padx=10, pady=5)
         self.detail_created_var = tk.StringVar()
         tb.Label(self.detail_frame, textvariable=self.detail_created_var, bootstyle="info").grid(row=2, column=1, columnspan=3, sticky="w", padx=10, pady=5)
+        
+        # 查看详细信息按钮
+        self.view_detail_btn = tb.Button(self.detail_frame, text="查看详细账户信息", command=self.show_user_account_window)
+        self.view_detail_btn.grid(row=3, column=0, columnspan=4, pady=10)
+        self.view_detail_btn.config(state=tk.DISABLED)
     
     def init_stats_tab(self):
         """初始化数据统计选项卡"""
@@ -181,8 +191,8 @@ class AdminFrame(tb.Frame):
         
         # 创建图表
         self.assets_fig, self.assets_ax = plt.subplots(figsize=(5, 4), dpi=100)
-        self.assets_fig.patch.set_facecolor("#0d1926")  # 设置图表背景颜色
-        self.assets_ax.set_facecolor("#142638")  # 设置坐标区域背景颜色
+        self.assets_fig.patch.set_facecolor(CHART_BG_COLOR)  # 设置图表背景颜色
+        self.assets_ax.set_facecolor(CHART_AREA_COLOR)  # 设置坐标区域背景颜色
         self.assets_canvas = FigureCanvasTkAgg(self.assets_fig, master=self.assets_chart_frame)
         self.assets_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
     
@@ -198,8 +208,8 @@ class AdminFrame(tb.Frame):
         
         # 创建图表
         self.trans_fig, self.trans_ax = plt.subplots(figsize=(5, 4), dpi=100)
-        self.trans_fig.patch.set_facecolor("#0d1926")  # 设置图表背景颜色
-        self.trans_ax.set_facecolor("#142638")  # 设置坐标区域背景颜色
+        self.trans_fig.patch.set_facecolor(CHART_BG_COLOR)  # 设置图表背景颜色
+        self.trans_ax.set_facecolor(CHART_AREA_COLOR)  # 设置坐标区域背景颜色
         self.trans_canvas = FigureCanvasTkAgg(self.trans_fig, master=self.trans_chart_frame)
         self.trans_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
     
@@ -306,6 +316,9 @@ class AdminFrame(tb.Frame):
         self.assets_ax.set_xticklabels(usernames)
         self.assets_ax.legend()
         
+        # 设置网格线
+        self.assets_ax.grid(color=GRID_COLOR, linestyle='--', alpha=0.5)
+        
         # 自动调整布局
         self.assets_fig.tight_layout()
         
@@ -329,6 +342,9 @@ class AdminFrame(tb.Frame):
         self.trans_ax.set_ylabel('交易次数')
         self.trans_ax.set_title('用户交易次数统计')
         
+        # 设置网格线
+        self.trans_ax.grid(color=GRID_COLOR, linestyle='--', alpha=0.5)
+        
         # 自动调整布局
         self.trans_fig.tight_layout()
         
@@ -342,11 +358,13 @@ class AdminFrame(tb.Frame):
             # 禁用编辑和删除按钮
             self.edit_btn.config(state=tk.DISABLED)
             self.delete_btn.config(state=tk.DISABLED)
+            self.view_detail_btn.config(state=tk.DISABLED)
             return
         
         # 启用编辑和删除按钮
         self.edit_btn.config(state=tk.NORMAL)
         self.delete_btn.config(state=tk.NORMAL)
+        self.view_detail_btn.config(state=tk.NORMAL)
         
         # 获取选中的用户
         item = selected_items[0]
@@ -554,13 +572,13 @@ class AdminFrame(tb.Frame):
                 messagebox.showerror("错误", "初始资金必须大于0")
                 return
             
+            # 实际应用中应保存设置到配置文件或数据库
             messagebox.showinfo("成功", "设置保存成功")
         except:
             messagebox.showerror("错误", "初始资金必须是数字")
     
-
-    def show_holdings_window(self, event):
-        """显示用户持仓窗口"""
+    def show_user_account_window(self, event=None):
+        """显示用户账户详细信息窗口"""
         selected_items = self.user_tree.selection()
         if not selected_items:
             return
@@ -572,84 +590,113 @@ class AdminFrame(tb.Frame):
             messagebox.showwarning("警告", "用户数据不存在")
             return
         
-        # 创建持仓显示窗口
-        holdings_window = tb.Toplevel(self)
-        holdings_window.title(f"用户 {username} 持仓信息")
-        holdings_window.geometry("2000x1500") 
-        holdings_window.resizable(True, True)
+        # 创建账户信息窗口
+        account_window = tb.Toplevel(self)
+        account_window.title(f"用户 {username} 账户信息")
+        account_window.geometry("2000x1500")
+        account_window.resizable(True, True)
         
         # 创建主框架（左右布局）
-        main_frame = tb.Frame(holdings_window, bootstyle="dark")
+        main_frame = tb.Frame(account_window, bootstyle="dark")
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        # 左侧：持仓表格
+        # 左侧：账户信息和持仓表格
         left_frame = tb.Frame(main_frame, bootstyle="dark")
         left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        # 右侧：资产分布图表
+        # 右侧：资产分布和持仓分布图表
         right_frame = tb.Frame(main_frame, bootstyle="dark")
         right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        # === 左侧持仓表格 ===
-        # 创建标题
-        tb.Label(left_frame, text=f"{username} 持仓信息", font=("微软雅黑", 14, "bold"), 
-                bootstyle="inverse-dark").pack(pady=10, anchor="w")
-        
-        # 创建账户概览
-        overview_frame = tb.LabelFrame(left_frame, text="账户概览", bootstyle="info")
-        overview_frame.pack(fill=tk.X, pady=5)
+        # === 左侧 ===
+        # 创建账户信息区域
+        account_info_frame = tb.LabelFrame(left_frame, text="账户概览", bootstyle="info")
+        account_info_frame.pack(fill=tk.X, pady=10)
         
         # 获取用户持仓数据
         holdings = user.get("holdings", {})
         stocks = db.get_stocks()
         
-        # 计算持仓市值
+        # 计算账户总值和总盈亏
+        balance = user.get("balance", 0)
         holdings_value = 0
-        stock_values = {}
+        total_profit = 0
+        
         for code, holding in holdings.items():
             stock = stocks.get(code, {})
             current_price = stock.get("price", 0)
             quantity = holding.get("quantity", 0)
+            cost_price = holding.get("cost", 0)
+            
+            # 计算持仓市值
             value = current_price * quantity
             holdings_value += value
-            stock_values[code] = value
+            
+            # 计算盈亏
+            cost_value = cost_price * quantity
+            profit = value - cost_value
+            total_profit += profit
+        
+        total_value = balance + holdings_value
+        
+        # 显示账户信息
+        # 用户名
+        tb.Label(account_info_frame, text="用户名:", bootstyle="light").grid(row=0, column=0, sticky="w", padx=10, pady=5)
+        tb.Label(account_info_frame, text=username, bootstyle="info").grid(row=0, column=1, sticky="w", padx=10, pady=5)
+        
+        # 账户余额
+        tb.Label(account_info_frame, text="可用资金:", bootstyle="light").grid(row=1, column=0, sticky="w", padx=10, pady=5)
+        tb.Label(account_info_frame, text=f"{balance:.2f}", bootstyle="info").grid(row=1, column=1, sticky="w", padx=10, pady=5)
+        
+        # 持仓市值
+        tb.Label(account_info_frame, text="持仓市值:", bootstyle="light").grid(row=2, column=0, sticky="w", padx=10, pady=5)
+        tb.Label(account_info_frame, text=f"{holdings_value:.2f}", bootstyle="info").grid(row=2, column=1, sticky="w", padx=10, pady=5)
+        
+        # 账户总值
+        tb.Label(account_info_frame, text="账户总值:", bootstyle="light").grid(row=3, column=0, sticky="w", padx=10, pady=5)
+        tb.Label(account_info_frame, text=f"{total_value:.2f}", bootstyle="info").grid(row=3, column=1, sticky="w", padx=10, pady=5)
+        
+        # 总盈亏
+        tb.Label(account_info_frame, text="总盈亏:", bootstyle="light").grid(row=4, column=0, sticky="w", padx=10, pady=5)
+        profit_label = tb.Label(account_info_frame, text=f"{total_profit:.2f}", 
+                             foreground=UP_COLOR if total_profit > 0 else DOWN_COLOR if total_profit < 0 else TEXT_COLOR)
+        profit_label.grid(row=4, column=1, sticky="w", padx=10, pady=5)
         
         # 创建持仓列表
+        tb.Label(left_frame, text="持仓信息", font=("微软雅黑", 12, "bold"), bootstyle="info").pack(pady=10, anchor="w")
+        
+        # 创建持仓表格
         columns = ('代码', '名称', '持仓', '成本价', '现价', '市值', '盈亏', '盈亏率')
         holdings_tree = tb.Treeview(left_frame, columns=columns, show='headings', bootstyle="dark")
         
         # 设置列标题和宽度
         for col in columns:
             holdings_tree.heading(col, text=col)
-            if col == '标题':
-                holdings_tree.column(col, width=400, anchor='w')
+            if col == '名称':
+                holdings_tree.column(col, width=120, anchor='w')
             else:
                 holdings_tree.column(col, width=80, anchor='center')
         
         # 添加滚动条
-        scrollbar = tb.Scrollbar(left_frame, orient=tk.VERTICAL, command=holdings_tree.yview, 
-                               bootstyle="round-dark")
+        scrollbar = tb.Scrollbar(left_frame, orient=tk.VERTICAL, command=holdings_tree.yview, bootstyle="round-dark")
         holdings_tree.configure(yscrollcommand=scrollbar.set)
         
         # 布局
         holdings_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        # 计算总盈亏
-        total_profit = 0
-        
+        # 填充持仓数据
         for code, holding in holdings.items():
             stock = stocks.get(code, {})
             name = holding.get("name", "")
             quantity = holding.get("quantity", 0)
-            cost_price = holding.get("cost", 0)  # 成本价
-            current_price = stock.get("price", 0)  # 现价
-            market_value = quantity * current_price  # 市值 = 现价 * 持仓
-            cost_value = quantity * cost_price  # 成本 = 成本价 * 持仓
-            profit = market_value - cost_value  # 盈亏 = 市值 - 成本
-            profit_rate = (profit / cost_value) * 100 if cost_value > 0 else 0  # 盈亏率
+            cost_price = holding.get("cost", 0)
+            current_price = stock.get("price", 0)
             
-            total_profit += profit
+            # 计算市值和盈亏
+            market_value = quantity * current_price
+            profit = market_value - (quantity * cost_price)
+            profit_rate = (profit / (quantity * cost_price)) * 100 if cost_price > 0 and quantity > 0 else 0
             
             # 设置颜色标签
             tag = "profit" if profit > 0 else "loss" if profit < 0 else "flat"
@@ -657,9 +704,9 @@ class AdminFrame(tb.Frame):
                 code,
                 name,
                 quantity,
-                f"{cost_price:.2f}",  # 显示成本价
-                f"{current_price:.2f}",  # 显示现价
-                f"{market_value:.2f}",  # 显示市值
+                f"{cost_price:.2f}",
+                f"{current_price:.2f}",
+                f"{market_value:.2f}",
                 f"{profit:.2f}",
                 f"{profit_rate:.2f}%"
             ), tags=(tag,))
@@ -669,27 +716,30 @@ class AdminFrame(tb.Frame):
         holdings_tree.tag_configure('loss', foreground=DOWN_COLOR)  # 下跌绿色
         holdings_tree.tag_configure('flat', foreground=TEXT_COLOR)  # 白色
         
-        # === 右侧资产分布饼图 ===
-        # 创建标题
-        tb.Label(right_frame, text=f"{username} 资产分布", font=("微软雅黑", 14, "bold"), 
-                bootstyle="inverse-dark").pack(pady=10, anchor="w")
+        # === 右侧 ===
+        # 创建资产分布图表
+        tb.Label(right_frame, text="资产分布", font=("微软雅黑", 12, "bold"), bootstyle="info").pack(pady=10, anchor="w")
         
-        # 创建图表框架
-        chart_frame = tb.Frame(right_frame, bootstyle="dark")
-        chart_frame.pack(fill=tk.BOTH, expand=True)
+        # 创建资产分布图表框架
+        asset_chart_frame = tb.Frame(right_frame, bootstyle="dark")
+        asset_chart_frame.pack(fill=tk.BOTH, expand=True, pady=5)
         
-        # 创建饼图
-        fig, ax = plt.subplots(figsize=(5, 4), dpi=100)
-        fig.patch.set_facecolor("#0d1926")  # 设置图表背景颜色
-        ax.set_facecolor("#142638")  # 设置坐标区域背景颜色
+        # 创建资产分布图表
+        asset_fig, asset_ax = plt.subplots(figsize=(6, 4), dpi=100)
+        asset_fig.subplots_adjust(bottom=0.25)  # 为图例腾出空间
+        asset_ax.set_title("资产分布", color=TEXT_COLOR)
+        
+        # 设置图表背景
+        asset_fig.patch.set_facecolor(CHART_BG_COLOR)
+        asset_ax.set_facecolor(CHART_AREA_COLOR)
         
         # 准备数据
-        labels = ['可用资金'] + list(stock_values.keys())
-        sizes = [user.get('balance', 0)] + list(stock_values.values())
-        colors = ['#66b3ff'] + ['#ff9999'] * len(stock_values)
+        labels = ['可用资金'] + [f"{holding.get('name', code)}({code})" for code, holding in holdings.items()]
+        sizes = [balance] + [holding.get('quantity', 0) * stocks.get(code, {}).get('price', 0) for code, holding in holdings.items()]
+        colors = ['#66b3ff'] + ['#ff9999'] * len(holdings)
         
         # 绘制饼图
-        wedges, texts, autotexts = ax.pie(
+        wedges, texts, autotexts = asset_ax.pie(
             sizes, 
             labels=None,  # 移除标签，改为使用图例
             colors=colors, 
@@ -703,16 +753,88 @@ class AdminFrame(tb.Frame):
             autotext.set_color('black')
             autotext.set_fontweight('bold')
         
-        ax.axis('equal')  # 保持圆形
-        ax.set_title("资产分布", color=TEXT_COLOR)
+        asset_ax.axis('equal')  # 保持圆形
         
         # 添加图例
         total = sum(sizes)
         legend_labels = [f'{labels[i]}: ¥{sizes[i]:,.2f} ({sizes[i]/total*100:.1f}%)' for i in range(len(labels))]
-        ax.legend(legend_labels, loc='upper center', bbox_to_anchor=(0.5, 0), 
-                ncol=2, frameon=True, facecolor="#142638", edgecolor='white')
+        asset_ax.legend(legend_labels, loc='upper center', bbox_to_anchor=(0.5, 0), 
+                      ncol=2, frameon=True, facecolor=CHART_AREA_COLOR, edgecolor='white')
         
-        # 创建图表画布
-        canvas = FigureCanvasTkAgg(fig, master=chart_frame)
-        canvas.draw()
-        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        # 创建资产分布图表画布
+        asset_canvas = FigureCanvasTkAgg(asset_fig, master=asset_chart_frame)
+        asset_canvas.draw()
+        asset_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        
+        # 创建持仓分布图表
+        tb.Label(right_frame, text="持仓分布", font=("微软雅黑", 12, "bold"), bootstyle="info").pack(pady=10, anchor="w")
+        
+        # 创建持仓分布图表框架
+        holdings_chart_frame = tb.Frame(right_frame, bootstyle="dark")
+        holdings_chart_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        
+        # 创建持仓分布图表
+        holdings_fig, holdings_ax = plt.subplots(figsize=(6, 4), dpi=100)
+        holdings_fig.subplots_adjust(bottom=0.25)  # 为图例腾出空间
+        holdings_ax.set_title("持仓分布", color=TEXT_COLOR)
+        
+        # 设置图表背景
+        holdings_fig.patch.set_facecolor(CHART_BG_COLOR)
+        holdings_ax.set_facecolor(CHART_AREA_COLOR)
+        
+        # 如果有持仓，绘制持仓分布饼图
+        if holdings:
+            # 准备数据
+            labels = [f"{holding.get('name', code)}({code})" for code, holding in holdings.items()]
+            sizes = [holding.get('quantity', 0) * stocks.get(code, {}).get('price', 0) for code, holding in holdings.items()]
+            
+            # 生成鲜艳的颜色
+            colors = plt.cm.tab20c(np.linspace(0, 1, len(holdings)))
+            
+            # 绘制饼图
+            wedges, texts, autotexts = holdings_ax.pie(
+                sizes, 
+                labels=None,  # 移除标签，改为使用图例
+                colors=colors, 
+                autopct='%1.1f%%', 
+                startangle=90,
+                wedgeprops={'edgecolor': 'white', 'linewidth': 1, 'alpha': 0.8}
+            )
+            
+            # 设置字体颜色
+            for autotext in autotexts:
+                autotext.set_color('black')
+                autotext.set_fontweight('bold')
+            
+            holdings_ax.axis('equal')  # 保持圆形
+            
+            # 准备图例内容
+            legend_labels = []
+            for i, (code, holding) in enumerate(holdings.items()):
+                stock = stocks.get(code, {})
+                current_price = stock.get("price", 0)
+                cost_price = holding.get("cost", 0)
+                quantity = holding.get("quantity", 0)
+                
+                profit = (current_price - cost_price) * quantity
+                profit_rate = ((current_price / cost_price) - 1) * 100 if cost_price > 0 else 0
+                
+                profit_status = "↑" if profit > 0 else "↓" if profit < 0 else "-"
+                legend_text = f"{holding.get('name', code)}: {profit_rate:+.1f}%"
+                legend_labels.append(legend_text)
+            
+            # 添加图例
+            if len(holdings) <= 8:  # 限制图例数量
+                holdings_ax.legend(wedges, legend_labels, loc='upper center', 
+                               bbox_to_anchor=(0.5, 0), ncol=min(len(holdings), 2),
+                               frameon=True, facecolor=CHART_AREA_COLOR, edgecolor='white')
+        else:
+            # 如果没有持仓，显示提示
+            holdings_ax.text(0.5, 0.5, '暂无持仓', horizontalalignment='center', 
+                           verticalalignment='center', color=TEXT_COLOR, fontsize=14)
+            holdings_ax.axis('off')
+        
+        # 创建持仓分布图表画布
+        holdings_canvas = FigureCanvasTkAgg(holdings_fig, master=holdings_chart_frame)
+        holdings_canvas.draw()
+        holdings_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
