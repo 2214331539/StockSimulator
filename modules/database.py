@@ -21,6 +21,7 @@ class Database:
         self._initialize_data_files()
     
     def _initialize_data_files(self):
+        """初始化数据文件"""
         # 初始化用户数据
         if not os.path.exists(self.users_file):
             default_users = {
