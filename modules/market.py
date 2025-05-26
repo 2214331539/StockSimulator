@@ -5,7 +5,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import pandas as pd
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from .stock_data import stock_manager
 from .database import db
 import ttkbootstrap as tb
@@ -28,6 +28,9 @@ class MarketFrame(tb.Frame):  # 使用ttkbootstrap美化界面
         super().__init__(parent, bootstyle="dark")
         self.username = username
         self.update_running = False
+        self.current_stock_code = None # 用于存储当前选中的股票代码
+        self.current_stock_name = None # 用于存储当前选中的股票名称
+        self.current_chart_period = "daily" #新增：追踪当前图表周期，默认为日线
         
         # 不使用background属性，使用bootstyle
         # self.configure(background=BACKGROUND_COLOR)
@@ -98,6 +101,9 @@ class MarketFrame(tb.Frame):  # 使用ttkbootstrap美化界面
         # 创建图表
         self.create_chart()
         
+        # 创建图表周期切换按钮
+        self.create_chart_period_buttons()
+        
         # 创建状态刷新指示器
         self.status_frame = tb.Frame(self, bootstyle="dark")
         # self.status_frame.configure(background=BACKGROUND_COLOR)
@@ -165,10 +171,18 @@ class MarketFrame(tb.Frame):  # 使用ttkbootstrap美化界面
     def create_chart(self):
         """创建图表"""
         # 创建标题
-        chart_title = tb.Label(self.right_frame, text="股价走势", font=("微软雅黑", 12, "bold"), 
-                             bootstyle="info")
-        chart_title.pack(pady=5, anchor="w")
+        chart_title_frame = tb.Frame(self.right_frame, bootstyle="dark")
+        chart_title_frame.pack(fill=tk.X, pady=(5,0)) # pady只有top
+
+        self.chart_title_var = tk.StringVar(value="请选择股票查看走势")
+        chart_title_label = tb.Label(chart_title_frame, textvariable=self.chart_title_var, 
+                                   font=("微软雅黑", 12, "bold"), bootstyle="info")
+        chart_title_label.pack(side=tk.LEFT, anchor="w") # 左对齐
         
+        # 图表周期切换按钮将放在这个标题下方的新Frame中
+        self.chart_period_btn_frame_in_chart_area = tb.Frame(chart_title_frame, bootstyle="dark")
+        self.chart_period_btn_frame_in_chart_area.pack(side=tk.RIGHT) # 右对齐
+
         # 创建图表框架
         self.chart_frame = tb.Frame(self.right_frame, bootstyle="dark")
         self.chart_frame.pack(fill=tk.BOTH, expand=True)
@@ -182,7 +196,7 @@ class MarketFrame(tb.Frame):  # 使用ttkbootstrap美化界面
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
         
         # 初始化图表
-        self.ax.set_title("请选择股票查看走势", color=TEXT_COLOR)
+        self.ax.set_title(self.chart_title_var.get(), color=TEXT_COLOR)
         self.ax.set_xlabel("日期", color=TEXT_COLOR)
         self.ax.set_ylabel("价格", color=TEXT_COLOR)
         self.ax.tick_params(colors=TEXT_COLOR)
@@ -194,6 +208,60 @@ class MarketFrame(tb.Frame):  # 使用ttkbootstrap美化界面
         
         self.canvas.draw()
     
+    def create_chart_period_buttons(self):
+        """创建图表周期切换按钮，放在图表标题栏右侧"""
+        # 使用 self.chart_period_btn_frame_in_chart_area 这个Frame
+        parent_frame = self.chart_period_btn_frame_in_chart_area
+
+        self.daily_chart_btn = tb.Button(parent_frame, text="日K", 
+                                           command=self.set_daily_chart_period, 
+                                           bootstyle="outline-info", width=5)
+        self.daily_chart_btn.pack(side=tk.LEFT, padx=(0,5))
+
+        self.hourly_chart_btn = tb.Button(parent_frame, text="时K", 
+                                            command=self.set_hourly_chart_period, 
+                                            bootstyle="outline-info", width=5)
+        self.hourly_chart_btn.pack(side=tk.LEFT, padx=0)
+        
+        # 初始化时，根据默认周期更新按钮状态
+        self.update_period_button_states()
+
+    def set_daily_chart_period(self):
+        """设置图表周期为日线并刷新"""
+        if self.current_chart_period != "daily":
+            self.current_chart_period = "daily"
+            self.update_period_button_states()
+            if self.current_stock_code and self.current_stock_name:
+                self.update_chart(self.current_stock_code, self.current_stock_name)
+            else:
+                 # 如果还没有选中的股票，只更新标题
+                self.ax.clear()
+                self.chart_title_var.set("请选择股票查看日K线走势")
+                self.ax.set_title(self.chart_title_var.get(), color=TEXT_COLOR)
+                self.canvas.draw()
+
+    def set_hourly_chart_period(self):
+        """设置图表周期为小时线并刷新"""
+        if self.current_chart_period != "hourly":
+            self.current_chart_period = "hourly"
+            self.update_period_button_states()
+            if self.current_stock_code and self.current_stock_name:
+                self.update_chart(self.current_stock_code, self.current_stock_name)
+            else:
+                self.ax.clear()
+                self.chart_title_var.set("请选择股票查看近24小时走势")
+                self.ax.set_title(self.chart_title_var.get(), color=TEXT_COLOR)
+                self.canvas.draw()
+
+    def update_period_button_states(self):
+        """根据当前选择的周期更新按钮的样式 (例如，选中的按钮为实心)"""
+        if self.current_chart_period == "daily":
+            self.daily_chart_btn.config(bootstyle="info") # 实心
+            self.hourly_chart_btn.config(bootstyle="outline-info") # 空心
+        elif self.current_chart_period == "hourly":
+            self.daily_chart_btn.config(bootstyle="outline-info")
+            self.hourly_chart_btn.config(bootstyle="info")
+
     def load_market_data(self):
         """加载市场数据"""
         # 更新状态
@@ -353,148 +421,111 @@ class MarketFrame(tb.Frame):  # 使用ttkbootstrap美化界面
         """处理股票选择事件"""
         selected_items = self.stock_tree.selection()
         if not selected_items:
+            self.current_stock_code = None # 清除当前选中的股票
+            self.current_stock_name = None
             return
         
-        # 获取选中的股票
         item = selected_items[0]
         values = self.stock_tree.item(item, 'values')
         if not values:
+            self.current_stock_code = None
+            self.current_stock_name = None
             return
         
-        # 获取股票代码
         code = values[0]
         name = values[1]
+
+        self.current_stock_code = code # 保存当前选中的股票
+        self.current_stock_name = name
         
-        # 更新状态
         self.status_label.config(text=f"状态: 正在加载 {name}({code}) 图表...", bootstyle="info")
-        
-        # 更新图表
-        self.update_chart(code, name)
+        self.update_chart(code, name) # update_chart会根据current_chart_period选择数据源
     
     def update_chart(self, code, name):
-        """更新图表"""
-        # 获取股票历史数据
-        df = stock_manager.get_index_data(code, days=30)
+        """根据当前选择的周期更新图表"""
+        self.ax.clear() # 清除旧图
+        df = pd.DataFrame()
+
+        if self.current_chart_period == "daily":
+            self.chart_title_var.set(f"{name} ({code}) - 日K线")
+            # 计算60天前的日期和今天的日期
+            end_date_daily = datetime.now().strftime("%Y-%m-%d")
+            start_date_daily = (datetime.now() - timedelta(days=60)).strftime("%Y-%m-%d")
+            df = stock_manager.get_stock_data(code, start_date=start_date_daily, end_date=end_date_daily)
+        elif self.current_chart_period == "hourly":
+            self.chart_title_var.set(f"{name} ({code}) - 近24小时")
+            df = stock_manager.get_stock_hourly_data(code, lookback_hours=24)
         
+        self.ax.set_title(self.chart_title_var.get(), color=TEXT_COLOR)
+
         if df.empty:
-            messagebox.showinfo("提示", f"未找到 {code} 的历史数据")
-            self.status_label.config(text=f"状态: 无法加载 {code} 的图表数据", bootstyle="danger")
+            msg = f"未找到 {code} 的 {self.current_chart_period} 数据"
+            messagebox.showinfo("提示", msg)
+            self.status_label.config(text=f"状态: {msg}", bootstyle="danger")
+            self.ax.text(0.5, 0.5, msg, horizontalalignment='center', verticalalignment='center', color=TEXT_COLOR, transform=self.ax.transAxes)
+            self.canvas.draw()
+            return
+
+        # 确保 'date' 和 'close' 列存在
+        if 'date' not in df.columns or 'close' not in df.columns:
+            msg = f"{code} 返回的数据缺少 'date' 或 'close' 列 ({self.current_chart_period} 周期)"
+            messagebox.showerror("数据错误", msg)
+            self.status_label.config(text=f"状态: {msg}", bootstyle="danger")
+            self.ax.text(0.5, 0.5, "数据格式错误", horizontalalignment='center', verticalalignment='center', color=TEXT_COLOR, transform=self.ax.transAxes)
+            self.canvas.draw()
             return
         
-        # 清除图表
-        self.ax.clear()
+        # 'date' 列对于小时数据已经是 datetime 对象，对于日线数据是 YYYY-MM-DD 字符串
+        # Matplotlib 可以处理这两种情况，但为了统一和更好的格式化，我们转换为 datetime
+        try:
+            df['date'] = pd.to_datetime(df['date'])
+        except Exception as e:
+            print(f"转换日期列失败: {e}")
+            messagebox.showerror("数据错误", f"日期格式无法解析: {e}")
+            # Fallback or return
+            self.canvas.draw()
+            return
+
+        self.ax.plot(df['date'], df['close'], marker='.', linestyle='-', color=ACCENT_COLOR, linewidth=1.5)
         
-        # 绘制K线图
-        df['date'] = pd.to_datetime(df['date'])
-        self.ax.plot(df['date'], df['close'], marker='o', linestyle='-', color=ACCENT_COLOR, linewidth=2)
-        
-        # 获取当前列表中显示的实时价格
-        current_price = None
-        for item in self.stock_tree.get_children():
-            values = self.stock_tree.item(item, 'values')
-            if values and values[0] == code:
-                try:
-                    current_price = float(values[2])
-                    break
-                except:
-                    pass
-        
-        # 获取数据库中的价格
-        stock_info = db.get_stock(code)
-        db_price = stock_info.get("price", 0) if stock_info else 0
-        
-        # 获取历史数据中的最后价格
-        last_date = df['date'].iloc[-1]
-        last_price = df['close'].iloc[-1]
-        
-        # 设置标题和标签
-        self.ax.set_title(f"{name} ({code}) 走势图", color=TEXT_COLOR)
-        self.ax.set_xlabel("日期", color=TEXT_COLOR)
+        self.ax.set_xlabel("时间", color=TEXT_COLOR)
         self.ax.set_ylabel("价格", color=TEXT_COLOR)
-        self.ax.tick_params(colors=TEXT_COLOR)
-        
-        # 设置网格线
+        self.ax.tick_params(axis='x', colors=TEXT_COLOR, labelrotation=45)
+        self.ax.tick_params(axis='y', colors=TEXT_COLOR)
         self.ax.grid(True, linestyle='--', alpha=0.3, color=GRID_COLOR)
-        
-        # 自动调整y轴范围，为最高和最低价格增加一些边距
-        if current_price is not None and abs(current_price - last_price) > 0.01:
-            y_values = list(df['close'].values)
-            y_values.append(current_price)
-            y_min = min(y_values) * 0.98
-            y_max = max(y_values) * 1.02
-            
-            # 在图表上显示实时价格标记（在图表右侧）
-            today = pd.Timestamp(datetime.now().strftime('%Y-%m-%d'))
-            if today > last_date:
-                # 添加实时价格点（用虚线连接到最后一个历史数据点）
-                self.ax.plot([last_date, today], [last_price, current_price], 
-                            linestyle='--', color='#ff9900', linewidth=1.5)
-                self.ax.scatter([today], [current_price], color='#ff9900', s=80, zorder=5)
-                self.ax.annotate(f'列表价格: {current_price:.2f}', (today, current_price),
-                                xytext=(10, 0), textcoords='offset points',
-                                color='#ff9900', fontweight='bold',
-                                bbox=dict(boxstyle="round,pad=0.3", fc=CHART_BG_COLOR, alpha=0.7))
-                
-                # 添加价格变化标注
-                price_change = current_price - last_price
-                price_change_pct = (price_change / last_price) * 100 if last_price > 0 else 0
-                change_color = UP_COLOR if price_change > 0 else DOWN_COLOR if price_change < 0 else TEXT_COLOR
-                self.ax.annotate(f'变化: {price_change:.2f} ({price_change_pct:.2f}%)', 
-                                (last_date, (last_price + current_price)/2),
-                                xytext=(-120, 0), textcoords='offset points',
-                                color=change_color, fontweight='bold',
-                                bbox=dict(boxstyle="round,pad=0.3", fc=CHART_BG_COLOR, alpha=0.7))
-        else:
-            y_min = df['close'].min() * 0.98
-            y_max = df['close'].max() * 1.02
-            
-        self.ax.set_ylim(y_min, y_max)
-        
-        # 高亮最新历史价格点
-        self.ax.scatter([last_date], [last_price], color='red', s=80)
-        self.ax.annotate(f'历史: {last_price:.2f}', (last_date, last_price),
-                          xytext=(10, 10), textcoords='offset points',
-                          color=TEXT_COLOR, bbox=dict(boxstyle="round,pad=0.3", fc=CHART_BG_COLOR, alpha=0.7))
-        
-        # 如果调用了stock_manager.sync_stock_prices()，图表价格和列表价格应该一致
-        # 但如果仍有显著差异，添加警告提示
-        if current_price is not None and abs(current_price - last_price) / last_price > 0.05:  # 差异超过5%
-            warning_text = "警告: 列表价格与图表价格存在显著差异，请刷新数据"
-            self.fig.text(0.5, 0.01, warning_text, ha='center', color=UP_COLOR, 
-                          bbox=dict(facecolor=CHART_BG_COLOR, alpha=0.8, boxstyle='round,pad=0.5'))
-            
-            # 在状态栏显示数据不一致警告
-            self.status_label.config(text=f"状态: 数据不一致警告 - 请点击刷新按钮同步价格", bootstyle="warning")
-            
-            # 添加'同步价格'按钮
-            if not hasattr(self, 'sync_btn'):
-                self.sync_btn = tb.Button(
-                    self.top_frame, 
-                    text="同步价格", 
-                    command=self.sync_and_refresh,
-                    bootstyle="danger-outline"
-                )
-                self.sync_btn.pack(side=tk.LEFT, padx=5, after=self.refresh_btn)
-            self.sync_btn.configure(state=tk.NORMAL)
-        elif hasattr(self, 'sync_btn'):
-            self.sync_btn.pack_forget()
-        
-        # 旋转日期标签
-        plt.xticks(rotation=45)
-        
-        # 设置图表背景颜色
         self.fig.patch.set_facecolor(CHART_BG_COLOR)
         self.ax.set_facecolor(CHART_AREA_COLOR)
+
+        # 设置X轴日期格式和定位器
+        import matplotlib.dates as mdates
+        if self.current_chart_period == "daily":
+            date_format = mdates.DateFormatter('%Y-%m-%d')
+            # 自动选择最优的日期刻度定位器，同时限制刻度数量
+            self.ax.xaxis.set_major_locator(mdates.AutoDateLocator(minticks=5, maxticks=10, tz=None))
+            self.ax.xaxis.set_minor_locator(mdates.DayLocator()) # 以天为次刻度单位
+        elif self.current_chart_period == "hourly":
+            date_format = mdates.DateFormatter('%m-%d %H:%M')
+            # 对于小时图，可以更密集一些，比如每隔几个小时一个主刻度
+            # AutoDateLocator 仍然可用，或者指定 HourLocator
+            self.ax.xaxis.set_major_locator(mdates.AutoDateLocator(minticks=4, maxticks=8, tz=None))
+            # self.ax.xaxis.set_major_locator(mdates.HourLocator(interval=4)) # 例如每4小时一个主刻度
+            self.ax.xaxis.set_minor_locator(mdates.HourLocator(byhour=range(0, 24, 6))) # 每6小时一个次刻度
         
-        # 自动调整布局
-        self.fig.tight_layout()
-        
-        # 刷新图表
+        self.ax.xaxis.set_major_formatter(date_format)
+        self.fig.autofmt_xdate(rotation=30, ha='right') # 自动格式化X轴日期，旋转并右对齐
+
+        # 标注逻辑 (图表最后一个数据点)
+        if (self.current_chart_period == "daily" or self.current_chart_period == "hourly") and not df.empty:
+            last_date = df['date'].iloc[-1]
+            last_price = df['close'].iloc[-1]
+            self.ax.scatter([last_date], [last_price], color='red', s=50, zorder=5) # zorder确保点在最上层
+            self.ax.annotate(f'{last_price:.2f}', (last_date, last_price),
+                             xytext=(5, 5), textcoords='offset points',
+                             color=TEXT_COLOR, bbox=dict(boxstyle="round,pad=0.2", fc=CHART_AREA_COLOR, alpha=0.7))
+
+        self.fig.tight_layout() # 自动调整布局以适应旋转的标签
         self.canvas.draw()
-        
-        # 更新状态
-        if current_price is not None and abs(current_price - last_price) / last_price <= 0.05:
-            self.status_label.config(text=f"状态: {name}({code}) 图表已加载", bootstyle="success")
+        self.status_label.config(text=f"状态: {name}({code}) {self.current_chart_period} 图表已加载", bootstyle="success")
     
     def sync_and_refresh(self):
         """同步股票价格数据并刷新显示"""
