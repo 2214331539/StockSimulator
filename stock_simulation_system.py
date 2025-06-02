@@ -77,7 +77,8 @@ class StockSimulationApp:
         nav_buttons = [
             ("市场信息", "market", self.show_market, "outline-info"),
             ("交易操作", "trading", self.show_trading, "outline-success"),
-            ("新闻资讯", "news", self.show_news, "outline-warning"),
+            ("股票推荐", "recommendation", self.show_recommendation, "outline-warning"),
+            ("新闻资讯", "news", self.show_news, "outline-secondary"),
             ("账户信息", "account", self.show_account, "outline-primary")
         ]
         
@@ -101,6 +102,10 @@ class StockSimulationApp:
         
         # 交易操作页面
         self.frames["trading"] = TradingFrame(self.content_frame, self.current_user)
+        
+        # 股票推荐页面
+        from modules.recommendation import RecommendationFrame
+        self.frames["recommendation"] = RecommendationFrame(self.content_frame, self.current_user)
         
         # 新闻资讯页面
         self.frames["news"] = NewsFrame(self.content_frame)
@@ -129,6 +134,10 @@ class StockSimulationApp:
     def show_trading(self):
         """显示交易操作页面"""
         self.show_frame("trading")
+    
+    def show_recommendation(self):
+        """显示股票推荐页面"""
+        self.show_frame("recommendation")
     
     def show_news(self):
         """显示新闻资讯页面"""
