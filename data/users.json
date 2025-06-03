@@ -9,7 +9,7 @@
     "user": {
         "password": "user123",
         "type": "user",
-        "balance": 97362.95999999999,
+        "balance": 68132.54999999999,
         "holdings": {
             "sh.000001": {
                 "name": "上证指数",
@@ -20,6 +20,11 @@
                 "name": "工商银行",
                 "quantity": 1,
                 "cost": 7.16
+            },
+            "sh.600570": {
+                "name": "恒生电子",
+                "quantity": 1111,
+                "cost": 26.31
             }
         },
         "created_at": "2025-05-12 11:46:37"

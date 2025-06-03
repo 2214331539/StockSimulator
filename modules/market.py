@@ -10,6 +10,10 @@ from .stock_data import stock_manager
 from .database import db
 import ttkbootstrap as tb
 from ttkbootstrap import Style  # 显式导入Style
+import mplfinance as mpf
+from matplotlib.figure import Figure
+import matplotlib.dates as mdates
+import numpy as np
 
 # 定义全局颜色变量
 BACKGROUND_COLOR = "#0d1926"  # 深蓝色背景
@@ -31,6 +35,7 @@ class MarketFrame(tb.Frame):  # 使用ttkbootstrap美化界面
         self.current_stock_code = None # 用于存储当前选中的股票代码
         self.current_stock_name = None # 用于存储当前选中的股票名称
         self.current_chart_period = "daily" #新增：追踪当前图表周期，默认为日线
+        self.current_chart_df = None # 新增：用于存储当前图表的数据
         
         # 不使用background属性，使用bootstyle
         # self.configure(background=BACKGROUND_COLOR)
@@ -114,6 +119,13 @@ class MarketFrame(tb.Frame):  # 使用ttkbootstrap美化界面
         
         self.refresh_indicator = tb.Label(self.status_frame, text="○", bootstyle="danger")
         self.refresh_indicator.pack(side=tk.RIGHT)
+        
+        # 新增：鼠标悬停标记相关变量
+        self.hover_line = None  # 垂直参考线
+        self.hover_price_text = None  # 价格文本标记
+        # self.hover_price_box = None  # 价格文本背景框
+        # self.canvas.mpl_connect('motion_notify_event', self.on_mouse_motion)
+        # self.canvas.mpl_connect('axes_leave_event', self.on_mouse_leave)
         
         # 初始加载数据
         self.load_market_data()
@@ -205,6 +217,10 @@ class MarketFrame(tb.Frame):  # 使用ttkbootstrap美化界面
         
         # 设置网格线
         self.ax.grid(True, linestyle='--', alpha=0.3, color=GRID_COLOR)
+        
+        # 绑定鼠标事件
+        self.canvas.mpl_connect('motion_notify_event', self.on_mouse_motion)
+        self.canvas.mpl_connect('axes_leave_event', self.on_mouse_leave)
         
         self.canvas.draw()
     
@@ -456,6 +472,9 @@ class MarketFrame(tb.Frame):  # 使用ttkbootstrap美化界面
             self.chart_title_var.set(f"{name} ({code}) - 近24小时")
             df = stock_manager.get_stock_hourly_data(code, lookback_hours=24)
         
+        # 保存当前图表数据供鼠标悬停功能使用
+        self.current_chart_df = df.copy() if not df.empty else None
+        
         self.ax.set_title(self.chart_title_var.get(), color=TEXT_COLOR)
 
         if df.empty:
@@ -497,7 +516,6 @@ class MarketFrame(tb.Frame):  # 使用ttkbootstrap美化界面
         self.ax.set_facecolor(CHART_AREA_COLOR)
 
         # 设置X轴日期格式和定位器
-        import matplotlib.dates as mdates
         if self.current_chart_period == "daily":
             date_format = mdates.DateFormatter('%Y-%m-%d')
             # 自动选择最优的日期刻度定位器，同时限制刻度数量
@@ -562,3 +580,93 @@ class MarketFrame(tb.Frame):  # 使用ttkbootstrap美化界面
         
         # 使用线程进行同步，避免界面卡顿
         threading.Thread(target=do_sync, daemon=True).start()
+
+    def on_mouse_motion(self, event):
+        """处理鼠标移动事件，显示垂直参考线和价格标记"""
+        # 检查鼠标是否在坐标轴内
+        if not event.inaxes or event.inaxes != self.ax:
+            # 如果鼠标移出了图表区域，隐藏参考线和价格标记
+            if self.hover_line:
+                self.hover_line.set_visible(False)
+            if self.hover_price_text:
+                self.hover_price_text.set_visible(False)
+            self.canvas.draw_idle()
+            return
+        
+        # 确保有数据可用
+        if self.current_chart_df is None or self.current_chart_df.empty:
+            return
+            
+        df = self.current_chart_df
+        
+        # 获取x轴和y轴的数据
+        try:
+            # 确保date列是datetime类型
+            if 'date' in df.columns:
+                dates = pd.to_datetime(df['date'])
+                prices = df['close'].values
+            else:
+                return
+                
+            # 转换为matplotlib可用的数值
+            date_nums = mdates.date2num(dates)
+            
+            # 找到最接近鼠标x坐标的数据点索引
+            if len(date_nums) == 0:
+                return
+                
+            # 使用numpy找到最接近的索引
+            idx = np.argmin(np.abs(date_nums - event.xdata))
+            
+            # 获取对应的数据
+            closest_date_num = date_nums[idx]
+            closest_price = prices[idx]
+            closest_date = dates.iloc[idx]
+            
+        except Exception as e:
+            print(f"处理鼠标悬停数据时出错: {e}")
+            return
+            
+        # 移除旧的标记（如果存在）
+        if self.hover_line:
+            self.hover_line.remove()
+        if self.hover_price_text:
+            self.hover_price_text.remove()
+            
+        # 创建新的垂直参考线
+        self.hover_line = self.ax.axvline(x=closest_date_num, color='gray', linestyle='-', linewidth=1, alpha=0.8)
+        
+        # 计算价格标记的位置
+        y_max = self.ax.get_ylim()[1]
+        y_min = self.ax.get_ylim()[0]
+        y_pos = y_max - (y_max - y_min) * 0.05  # 在图表顶部显示
+        
+        # 格式化日期和价格文本
+        if self.current_chart_period == 'hourly':
+            date_str = closest_date.strftime('%m-%d %H:%M')
+        else:
+            date_str = closest_date.strftime('%Y-%m-%d')
+            
+        price_text = f"{date_str}\n¥{closest_price:.2f}"
+        
+        # 创建价格文本标记
+        self.hover_price_text = self.ax.text(
+            closest_date_num, y_pos, price_text,
+            ha='center', va='bottom',
+            fontsize=9, fontweight='bold', color='red',
+            bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.9, edgecolor='gray')
+        )
+        
+        # 重绘画布
+        self.canvas.draw_idle()
+
+    def on_mouse_leave(self, event):
+        """处理鼠标离开图表区域事件，隐藏垂直参考线和价格标记"""
+        # 移除旧的标记（如果存在）
+        if self.hover_line:
+            self.hover_line.remove()
+            self.hover_line = None
+        if self.hover_price_text:
+            self.hover_price_text.remove()
+            self.hover_price_text = None
+        self.canvas.draw_idle()

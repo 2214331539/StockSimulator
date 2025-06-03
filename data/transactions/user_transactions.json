@@ -18,5 +18,15 @@
         "quantity": 1,
         "amount": 7.16,
         "timestamp": "2025-05-12 22:08:54"
+    },
+    {
+        "username": "user",
+        "type": "buy",
+        "stock_code": "sh.600570",
+        "stock_name": "恒生电子",
+        "price": 26.31,
+        "quantity": 1111,
+        "amount": 29230.41,
+        "timestamp": "2025-06-02 00:55:26"
     }
 ]
