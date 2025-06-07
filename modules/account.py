@@ -358,7 +358,7 @@ class AccountFrame(tb.Frame):
         
         # 添加图例
         total = sum(sizes)
-        legend_labels = [f'{labels[i]}: ¥{sizes[i]:,.2f} ({sizes[i]/total*100:.1f}%)' for i in range(len(labels))]
+        legend_labels = [f'{labels[i]}: {sizes[i]:,.2f}(元) ({sizes[i]/total*100:.1f}%)' for i in range(len(labels))]
         self.asset_ax.legend(legend_labels, loc='upper center', bbox_to_anchor=(0.5, 0), 
                            ncol=2, frameon=True, facecolor=CHART_AREA_COLOR, edgecolor='white')
         
@@ -367,10 +367,10 @@ class AccountFrame(tb.Frame):
         self.asset_canvas.draw()
     
     def update_holdings_chart(self, holdings_data):
-        """更新持仓分布图表"""
+        """更新持仓分布图表（改为柱状图）"""
         # 清除图表
         self.holdings_ax.clear()
-        
+
         # 如果没有持仓，显示提示
         if not holdings_data:
             self.holdings_ax.text(0.5, 0.5, '暂无持仓', horizontalalignment='center', 
@@ -378,49 +378,26 @@ class AccountFrame(tb.Frame):
             self.holdings_ax.axis('off')
             self.holdings_canvas.draw()
             return
-        
+
         # 准备数据
         labels = [f"{h['name']}({h['code']})" for h in holdings_data]
-        sizes = [h['value'] for h in holdings_data]
-        
-        # 生成鲜艳的颜色
+        values = [h['value'] for h in holdings_data]
         colors = plt.cm.tab20c(np.linspace(0, 1, len(holdings_data)))
-        
-        # 绘制饼图
-        wedges, texts, autotexts = self.holdings_ax.pie(
-            sizes, 
-            labels=None,  # 移除标签，改为使用图例
-            colors=colors, 
-            autopct='%1.1f%%', 
-            startangle=90,
-            wedgeprops={'edgecolor': 'white', 'linewidth': 1, 'alpha': 0.8}
-        )
-        
-        # 设置字体颜色
-        for autotext in autotexts:
-            autotext.set_color('black')
-            autotext.set_fontweight('bold')
-        
-        self.holdings_ax.axis('equal')  # 保持圆形
-        self.holdings_ax.set_title("持仓分布", color=TEXT_COLOR)
-        
-        # 设置背景颜色
-        self.holdings_fig.patch.set_facecolor(CHART_BG_COLOR)
+
+        # 绘制柱状图
+        bars = self.holdings_ax.bar(labels, values, color=colors)
+        self.holdings_ax.set_title("持仓分布（市值）", color=TEXT_COLOR)
+        self.holdings_ax.set_ylabel("市值", color=TEXT_COLOR)
+        self.holdings_ax.set_xlabel("股票", color=TEXT_COLOR)
+        self.holdings_ax.tick_params(axis='x', colors=TEXT_COLOR, rotation=30)
+        self.holdings_ax.tick_params(axis='y', colors=TEXT_COLOR)
         self.holdings_ax.set_facecolor(CHART_AREA_COLOR)
-        
-        # 准备图例内容
-        legend_labels = []
-        for i, h in enumerate(holdings_data):
-            profit_status = "↑" if h['profit'] > 0 else "↓" if h['profit'] < 0 else "-"
-            legend_text = f"{h['name']}: {h['profit_rate']:.1f}%"
-            legend_labels.append(legend_text)
-        
-        # 添加更简洁的图例
-        if len(holdings_data) <= 8:  # 限制图例数量
-            self.holdings_ax.legend(wedges, legend_labels, loc='upper center', 
-                                 bbox_to_anchor=(0.5, 0), ncol=min(len(holdings_data), 2),
-                                 frameon=True, facecolor=CHART_AREA_COLOR, edgecolor='white')
-        
-        # 刷新图表，但不使用tight_layout
-        # self.holdings_fig.tight_layout()  # 移除这一行
+        self.holdings_fig.patch.set_facecolor(CHART_BG_COLOR)
+
+        # 在柱子上标注市值
+        for bar, value in zip(bars, values):
+            self.holdings_ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height(), f"{value:.2f}",
+                                  ha='center', va='bottom', color=TEXT_COLOR, fontsize=9)
+
+        self.holdings_fig.tight_layout()
         self.holdings_canvas.draw() 

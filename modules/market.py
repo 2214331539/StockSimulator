@@ -646,8 +646,8 @@ class MarketFrame(tb.Frame):  # 使用ttkbootstrap美化界面
             date_str = closest_date.strftime('%m-%d %H:%M')
         else:
             date_str = closest_date.strftime('%Y-%m-%d')
-            
-        price_text = f"{date_str}\n¥{closest_price:.2f}"
+        
+        price_text = f"{date_str}\n{closest_price:.2f}(元)"
         
         # 创建价格文本标记
         self.hover_price_text = self.ax.text(
